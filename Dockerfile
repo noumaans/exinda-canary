@@ -47,36 +47,37 @@ RUN ( \
     make && \
     make install)
 
-# Squid v4 does not compile as it requires GCC 4.7+
-# RUN ( \
-#     cd /usr/local/src && curl -O http://www.squid-cache.org/Versions/v4/squid-4.8.tar.gz; \
-#     tar -zxf squid-4.8.tar.gz)
-# RUN ( \
-#     cd /usr/local/src/squid-4.8 && \
-#     ./configure && \
-#     make && \
-#     make install)
-
-# Squid 3.5.28 binary uses old OpenSSL
-# RUN ( \
-#     cd /usr/local/src && curl -O http://www1.ngtech.co.il/repo/centos/6/x86_64/squid-3.5.28-1.el6.x86_64.rpm; \
-#     yum localinstall -y squid-3.5.28-1.el6.x86_64.rpm)
-
-# Squid v3.5.28
+# Squid v4 requires GCC 4.7+
+# GCC 4.8
 RUN ( \
-    yum install -y gcc-c++ && \
-    cd /usr/local/src && curl -O http://www.squid-cache.org/Versions/v3/3.5/squid-3.5.28.tar.gz; \
-    tar -zxf squid-3.5.28.tar.gz)
+    rpm --import http://linuxsoft.cern.ch/cern/slc6X/x86_64/RPM-GPG-KEY-cern; \
+    cd /etc/yum.repos.d && curl -O http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo && \
+    yum install -y centos-release-scl devtoolset-2-gcc-c++ devtoolset-2-binutils-devel)
+
+# Squid
 RUN ( \
-    cd /usr/local/src/squid-3.5.28 && \
-    ./configure && \
+    yum install -y automake wget libxml2-devel libcap-devel; \
+    cd /usr/local/src && curl -O http://www.squid-cache.org/Versions/v4/squid-4.8.tar.gz; \
+    tar -zxf squid-4.8.tar.gz)
+
+RUN ( \
+    source scl_source enable devtoolset-2 && \
+    cd /usr/local/src/squid-4.8 && \
+    ./configure \
+        --prefix=/usr \
+        --includedir=/usr/include \
+        --datadir=/usr/share \
+        --bindir=/usr/sbin \
+        --libexecdir=/usr/lib/squid \
+        --localstatedir=/var \
+        --sysconfdir=/etc/squid \
+        && \
     make && \
     make install)
 
-
 #ENTRYPOINT ["/bin/bash"]
-CMD /usr/local/bin/openssl version && \
+CMD cat /etc/centos-release && \
+    /usr/local/bin/openssl version && \
     /usr/local/bin/ssh -V && \
     /usr/local/apache2/bin/httpd -v && \
-    /usr/local/squid/sbin/squid -v
-# /usr/local/apache2/bin/apachectl -k start
+    /usr/sbin/squid -v
